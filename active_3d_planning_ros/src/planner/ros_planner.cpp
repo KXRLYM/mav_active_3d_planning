@@ -7,6 +7,9 @@
 #include <vector>
 
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <move_base_msgs/MoveBaseAction.h>
+#include <ros/ros.h>
 #include <tf/transform_datatypes.h>
 
 #include "active_3d_planning_ros/module/module_factory_ros.h"
@@ -18,21 +21,26 @@ namespace ros {
 RosPlanner::RosPlanner(const ::ros::NodeHandle& nh,
                        const ::ros::NodeHandle& nh_private,
                        ModuleFactory* factory, Module::ParamMap* param_map)
-    : OnlinePlanner(factory, param_map), nh_(nh), nh_private_(nh_private) {
+    : OnlinePlanner(factory, param_map),
+      nh_(nh),
+      nh_private_(nh_private),
+      action_client_("move_base", true) {
   // params
   RosPlanner::setupFromParamMap(param_map);
   perf_log_data_ = std::vector<double>(
       6, 0.0);  // select, expand, gain, cost, value, mainLoop, rosCallbacks
 
   // Subscribers and publishers
-  target_pub_ = nh_.advertise<trajectory_msgs::MultiDOFJointTrajectory>(
-      "command/trajectory", 10);
+  target_pub_ =
+      nh_.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 10);
   trajectory_vis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(
       "trajectory_visualization", 100);
-  odom_sub_ = nh_.subscribe("odometry", 1, &RosPlanner::odomCallback, this);
+  odom_sub_ = nh_.subscribe("odom", 1, &RosPlanner::odomCallback, this);
   get_cpu_time_srv_ = nh_private_.advertiseService(
       "get_cpu_time", &RosPlanner::cpuSrvCallback, this);
 
+  ROS_INFO("Waiting for action server");
+  action_client_.waitForServer();
   // Finish
   ROS_INFO_STREAM(
       "\n******************** Initialized Planner ********************\n"
@@ -151,15 +159,20 @@ void RosPlanner::requestMovement(const EigenTrajectoryPointVector& trajectory) {
     LOG(WARNING) << "Tried to publish an empty trajectory";
     return;
   }
-  trajectory_msgs::MultiDOFJointTrajectoryPtr msg(
-      new trajectory_msgs::MultiDOFJointTrajectory);
-  msg->header.stamp = ::ros::Time::now();
+
+  ROS_INFO("request movement using move_base");
+
   int n_points = trajectory.size();
-  msg->points.resize(n_points);
   for (int i = 0; i < n_points; ++i) {
-    msgMultiDofJointTrajectoryPointFromEigen(trajectory[i], &msg->points[i]);
+    move_base_msgs::MoveBaseGoalPtr msg =
+        boost::make_shared<move_base_msgs::MoveBaseGoal>();
+    msg->target_pose.header.frame_id = "map";
+    msg->target_pose.header.stamp = ::ros::Time::now();
+    msgMoveBaseGoalFromEigen(trajectory[i], msg, current_position_,
+                             current_orientation_);
+    action_client_.sendGoal(*msg);
+    bool success = action_client_.waitForResult(::ros::Duration(5.0));
   }
-  target_pub_.publish(msg);
 }
 
 void RosPlanner::publishVisualization(const VisualizationMarkers& markers) {
@@ -169,7 +182,7 @@ void RosPlanner::publishVisualization(const VisualizationMarkers& markers) {
   visualization_msgs::MarkerArray msg;
   visualizationMarkersToMsg(markers, &msg);
   for (visualization_msgs::Marker& m : msg.markers) {
-    m.header.frame_id = "world";
+    m.header.frame_id = "map";
     m.header.stamp = ::ros::Time::now();
   }
   // check overwrite flag (for full array)
@@ -188,7 +201,7 @@ void RosPlanner::publishVisualization(const VisualizationMarkers& markers) {
       for (int i = markers.getMarkers().size(); i < count; ++i) {
         // publish empty marker to remove previous ids
         auto empty_marker = visualization_msgs::Marker();
-        empty_marker.header.frame_id = "world";
+        empty_marker.header.frame_id = "map";
         empty_marker.header.stamp = ::ros::Time::now();
         empty_marker.type = visualization_msgs::Marker::POINTS;
         empty_marker.id = i;

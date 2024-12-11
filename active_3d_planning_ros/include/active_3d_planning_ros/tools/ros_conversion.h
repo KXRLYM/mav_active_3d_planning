@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
+#include <move_base_msgs/MoveBaseAction.h>
 #include <std_msgs/ColorRGBA.h>
 #include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -28,6 +29,27 @@ inline void quaternionEigenToMsg(const Eigen::Quaterniond& eigen,
   msg->y = eigen.y();
   msg->z = eigen.z();
   msg->w = eigen.w();
+}
+
+inline void msgMoveBaseGoalFromEigen(
+    const EigenTrajectoryPoint& trajectory_point,
+    move_base_msgs::MoveBaseGoalPtr msg, Eigen::Vector3d current_position,
+    Eigen::Quaterniond current_orientation) {
+  assert(msg != NULL);
+
+  msg->target_pose.pose.position.x = trajectory_point.position_W.x();
+  msg->target_pose.pose.position.y = trajectory_point.position_W.y();
+  msg->target_pose.pose.position.z = trajectory_point.position_W.z();
+
+  Eigen::Quaterniond goal_orientation =
+      current_orientation * trajectory_point.orientation_W_B;
+
+  goal_orientation.normalize();
+
+  msg->target_pose.pose.orientation.w = goal_orientation.w();
+  msg->target_pose.pose.orientation.x = goal_orientation.x();
+  msg->target_pose.pose.orientation.y = goal_orientation.y();
+  msg->target_pose.pose.orientation.z = goal_orientation.z();
 }
 
 inline void msgMultiDofJointTrajectoryPointFromEigen(

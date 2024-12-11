@@ -4,6 +4,13 @@ project(active_3d_planning_ros)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
+
+link_directories(/opt/ros/noetic/lib)
+link_directories(
+  ${catkin_INCLUDE_DIRS}  # This automatically includes all necessary catkin includes
+)
+
+
 add_definitions(-std=c++14)
 
 catkin_package()

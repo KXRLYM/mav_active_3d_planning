@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include <actionlib/client/simple_action_client.h>
+#include <move_base_msgs/MoveBaseAction.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <std_srvs/SetBool.h>
@@ -15,6 +17,9 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "active_3d_planning_core/planner/online_planner.h"
+
+typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>
+    MoveBaseClient;
 
 namespace active_3d_planning {
 namespace ros {
@@ -61,12 +66,15 @@ class RosPlanner : public OnlinePlanner {
   ::ros::ServiceServer run_srv_;
   ::ros::ServiceServer get_cpu_time_srv_;
 
+  MoveBaseClient action_client_;
+
   // variables
   ::ros::Time ros_timing_;      // track simulated time
   std::clock_t cpu_srv_timer_;  // To get CPU usage for service
   std::map<std::string, int>
       visualization_overwrite_counter_;  // store the previous number of
-                                         // visualizations to overwrite in RVIZ
+                                         // visualizations to overwrite in
+                                         // RVIZ
 
   // params
   double p_replan_pos_threshold_;  // m, when is the goal considered reached
