@@ -163,7 +163,10 @@ void RosPlanner::requestMovement(const EigenTrajectoryPointVector& trajectory) {
   ROS_INFO("request movement using move_base");
 
   int n_points = trajectory.size();
+  ROS_INFO("Trajectory contains %i items", n_points);
   for (int i = 0; i < n_points; ++i) {
+    ROS_INFO("the current goal is at %f, %f, %f", trajectory[i].position_W.x(),
+             trajectory[i].position_W.y(), trajectory[i].position_W.z());
     move_base_msgs::MoveBaseGoalPtr msg =
         boost::make_shared<move_base_msgs::MoveBaseGoal>();
     msg->target_pose.header.frame_id = "map";

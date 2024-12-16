@@ -60,6 +60,7 @@ class TrajectoryGenerator : public Module {
 
   // Parameters
   bool p_collision_optimistic_;
+  bool p_sample_2d_;          // to sample in 2d only
   double p_clearing_radius_;  // Unknown space within clearing radius is
   // considered traversable
   std::string p_selector_args_;

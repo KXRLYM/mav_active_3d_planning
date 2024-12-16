@@ -25,6 +25,7 @@ void TrajectoryGenerator::setupFromParamMap(Module::ParamMap* param_map) {
       temp_args, planner_, verbose_modules_);
   setParam<std::string>(param_map, "system_constraints_args", &temp_args,
                         ns + "/system_constraints");
+  setParam<bool>(param_map, "sample_2d", &p_sample_2d_, false);
 }
 
 bool TrajectoryGenerator::checkTraversable(const Eigen::Vector3d& position) {

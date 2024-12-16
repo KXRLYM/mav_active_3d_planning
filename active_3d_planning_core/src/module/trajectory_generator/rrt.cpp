@@ -82,6 +82,7 @@ bool RRT::selectSegment(TrajectorySegment** result, TrajectorySegment* root) {
     if (p_sampling_mode_ == "semilocal") {
       // Check whether the minimum number of local points is achieved and store
       // how many to go
+
       double query_pt[3] = {root->trajectory.back().position_W.x(),
                             root->trajectory.back().position_W.y(),
                             root->trajectory.back().position_W.z()};
@@ -189,6 +190,11 @@ bool RRT::sampleGoal(Eigen::Vector3d* goal_pos) {
     (*goal_pos)[2] = bounding_volume_->z_min +
                      static_cast<double>(rand()) / RAND_MAX *
                          (bounding_volume_->z_max - bounding_volume_->z_min);
+    if (p_sample_2d_) {
+      (*goal_pos)[2] = 0.2;
+    }
+    std::cout << "sampling in the bounds of " << (*goal_pos)[0] << " "
+              << (*goal_pos)[1] << " " << (*goal_pos)[2] << std::endl;
     return true;
 
   } else if (p_sampling_mode_ == "spheric") {
@@ -200,6 +206,9 @@ bool RRT::sampleGoal(Eigen::Vector3d* goal_pos) {
     for (int i = 0; i < 3; i++) {
       (*goal_pos)[i] +=
           2.0 * radius * (static_cast<double>(rand()) / RAND_MAX - 0.5);
+    }
+    if (p_sample_2d_) {
+      (*goal_pos)[2] = 0.2;
     }
     return true;
   } else if (p_sampling_mode_ == "semilocal") {
@@ -213,6 +222,11 @@ bool RRT::sampleGoal(Eigen::Vector3d* goal_pos) {
       *goal_pos += rho * Eigen::Vector3d(sin(phi) * cos(theta),
                                          sin(phi) * sin(theta), cos(phi));
       semilocal_count_ -= 1;
+      if (p_sample_2d_) {
+        (*goal_pos)[2] = 0.2;
+      }
+      std::cout << "sampling in the bounds of " << (*goal_pos)[0] << " "
+                << (*goal_pos)[1] << " " << (*goal_pos)[2] << std::endl;
       return true;
     } else {
       // sample spheric
@@ -223,6 +237,9 @@ bool RRT::sampleGoal(Eigen::Vector3d* goal_pos) {
       for (int i = 0; i < 3; i++) {
         (*goal_pos)[i] +=
             2.0 * radius * (static_cast<double>(rand()) / RAND_MAX - 0.5);
+      }
+      if (p_sample_2d_) {
+        (*goal_pos)[2] = 0.2;
       }
       return true;
     }
